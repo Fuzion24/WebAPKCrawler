@@ -5,12 +5,14 @@ require 'nokogiri'
 require 'open-uri'
 require 'yaml'
 require 'typhoeus'
+require File.join(File.dirname(__FILE__), "pool")
 
 class ApkCrawler
 
 	def initialize
 		@state_file = File.join(File.dirname(__FILE__), "url_search_state.yml")
 		@url_match_state = YAML.load_file(@state_file)
+        @pool = Pool.new(10)
 	end
 
 	def hash_file(file_name)
@@ -77,11 +79,16 @@ class ApkCrawler
 			g_results = google_results(k,v)
 			g_results.each do |url|
 				puts "Searching #{url}"
-				download_apks_from_page url
+
+                @pool.schedule do
+				    download_apks_from_page url
+                end
+
 				@url_match_state[k] += 1
 				save_hash
 			end
 		end
+        @pool.shutdown
 	end
 
 end
