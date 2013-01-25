@@ -12,7 +12,6 @@ class ApkCrawler
 	def initialize
 		@state_file = File.join(File.dirname(__FILE__), "url_search_state.yml")
 		@url_match_state = YAML.load_file(@state_file)
-        @pool = Pool.new(10)
 	end
 
 	def hash_file(file_name)
@@ -44,7 +43,7 @@ class ApkCrawler
 		doc.css('a').each do |link|
 		  if link['href'] =~ /\b.+.\.apk/
 		    begin
-		        download_file = open(url+link['href'])
+		        download_file = open(URI.escape(url+link['href']))
 		        downloaded_file = download_file.read()
 		        h1 = hash_str downloaded_file
 		        puts "#{h1} NEW #{link['href']}" if not File.exists? "downloads/#{h1}.apk"
@@ -55,7 +54,7 @@ class ApkCrawler
 			      	end
 		      	end
 		    rescue => ex
-			    puts "Boom goes the dynamite! #{ex.message} \n\n #{ex.backtrace}\n\n #{url+link['href']}"
+			    puts "Boom goes the dynamite! #{ex.message} #{url+link['href']}"
 		    end
 		  end
 		end
@@ -75,19 +74,24 @@ class ApkCrawler
 	end
 
 	def crawl
-		@url_match_state.each do |k,v|
-			g_results = google_results(k,v)
-			g_results.each do |url|
-				puts "Searching #{url}"
-
-                @pool.schedule do
-				    download_apks_from_page url
-                end
-
-				@url_match_state[k] += 1
-				save_hash
-			end
+        @pool = Pool.new(20)
+        number_of_pages = 30
+		all_results = []
+        @url_match_state.each do |query,start_search_pos|
+            [1..number_of_pages].each do
+    			g_results = google_results(query,@url_match_state[query])
+                all_results = all_results + g_results
+                @url_match_state[query] += g_results.size
+            end
 		end
+
+        all_results.each do |url|
+            puts "Searching #{url}"
+            @pool.schedule do
+                download_apks_from_page url
+            end
+        end
+        save_hash
         @pool.shutdown
 	end
 

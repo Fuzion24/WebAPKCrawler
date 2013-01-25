@@ -20,6 +20,10 @@ class Pool
     @jobs << [block, args]
   end
 
+  def joinThreads
+    @pool.map(&:join)
+  end
+
   def shutdown
     @size.times do
       schedule { throw :exit }
