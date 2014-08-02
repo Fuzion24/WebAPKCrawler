@@ -32,7 +32,7 @@ require 'fileutils'
         return false if apk_zip.find_entry("AndroidManifest.xml").nil?
         return false if apk_zip.find_entry("resources.arsc").nil?
         return true
-    end 
+    end
 
 
 def is_zip(file_name)
@@ -54,6 +54,3 @@ def move_and_rename(src, dst)
  	end
  end
 end
-
-move_and_rename "/Volumes/Ext/Downloads/apks", 
-"/Users/fuzion24/Development/apkcrawler/downloads/"
